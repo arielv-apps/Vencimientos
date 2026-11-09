@@ -186,7 +186,7 @@ resumen(){const v=S.items.filter(i=>i.dias<0).length,w=S.items.filter(i=>i.dias>
  const perm='Notification' in window?Notification.permission:'no';
  return `<h1>Vencimientos</h1><div class="mu">Hoy es ${fecha(S.today)}</div>
  <div class="kpis"><div class="kpi s-vencido"><b>${v}</b>${pl(v,'vencido','vencidos')}</div><div class="kpi s-urgente"><b>${w}</b>vencen en ${UMBRAL_URGENTE} días o menos</div></div>
- <h2>Lo más urgente</h2>${top?card(top):'<p>No hay vencimientos cargados. Agregá filas en la planilla y tocá Actualizar.</p>'}
+ <h2>Lo más urgente</h2>${top?card(top):S.err?'<p class="mu">Todavía no hay datos. Resolvé la conexión y tocá Actualizar.</p>':'<p>No hay vencimientos cargados. Agregá filas en la planilla y tocá Actualizar.</p>'}
  ${isIOS&&!standalone()?`<div class="note">En iPhone los avisos solo funcionan con la app instalada. <button class="btn sec" data-act="inst">Ver cómo instalarla</button></div>`:''}
  <h2>Ajustes</h2><div class="row">
  <button class="btn" data-act="refresh">Actualizar</button>
@@ -218,10 +218,10 @@ function listaHtml(){const q=norm(S.q),r=S.items.filter(i=>(!S.grupo||i.grupo===
  return r.length?r.map(card).join(''):'<p class="mu">No hay resultados. Probá con otro filtro o borrá la búsqueda.</p>'}
 
 function render(){let b='';
- if(S.err)b+=`<div class="note err"><b>No pudimos cargar la planilla.</b> ${esc(S.err)} Revisá tu conexión y tocá Actualizar. Si sigue fallando, confirmá que la hoja siga publicada (Archivo › Compartir › Publicar en la Web, formato CSV). <div class="row"><button class="btn" data-act="refresh">Actualizar</button>${conn()?'<button class="btn sec" data-act="conn">Conexión</button>':''}</div></div>`;
+ if(S.err)b+=`<div class="note err"><b>No pudimos cargar la planilla.</b> ${esc(S.err)}${S.errRaw?` <small>(Detalle técnico: ${esc(S.errRaw)})</small>`:''} Revisá tu conexión y tocá Actualizar. Si sigue fallando, confirmá que la hoja siga publicada (Archivo › Compartir › Publicar en la Web, formato CSV). <div class="row"><button class="btn" data-act="refresh">Actualizar</button><button class="btn sec" data-act="conn">${conn()?'Conexión':'Conectar planilla privada'}</button></div></div>`;
  if(S.stale)b+=`<div class="note">No pudimos actualizar. Mostramos la copia guardada del ${new Date(S.stale).toLocaleString('es-AR',{timeZone:TZ})}. Revisá tu conexión y tocá Actualizar en el Resumen.</div>`;
  if(S.bad.length)b+=`<div class="note">Descartamos ${S.bad.length} ${pl(S.bad.length,'fila','filas')} con fecha inválida (fila ${S.bad.join(', ')}). Corregí el formato a d/m/aaaa en la planilla. <button class="btn sec" data-act="dismiss">Cerrar</button></div>`;
- app.innerHTML=b+(S.items.length||!S.err?V[S.view]():'');
+ app.innerHTML=b+V[S.view]();
  document.querySelectorAll('#nav button').forEach(x=>x.dataset.v===S.view?x.setAttribute('aria-current','page'):x.removeAttribute('aria-current'))}
 
 async function get(u,sig){try{return await fetch(u,{signal:sig})}catch(e1){if(e1.name==='AbortError')throw e1;return await fetch(u+(u.includes('?')?'&':'?')+'_='+Date.now(),{credentials:'omit',referrerPolicy:'no-referrer',signal:sig})}}
@@ -232,7 +232,7 @@ async function load(){S.last=Date.now();const c=conn();let rows,res;
   if(c){let j;try{j=JSON.parse(tx)}catch(_){throw new Error('La respuesta del script no es válida. Revisá que la implementación tenga acceso "Cualquier persona" y que la URL termine en /exec.')}
    if(!j.ok)throw new Error((j.error||'El script rechazó el pedido.')+' Revisá la conexión en Ajustes.');rows=j.values}else rows=parseCSV(tx);
   res=buildItems(rows);ls.set(CACHE_KEY,JSON.stringify({rows,ts:Date.now()}));S.stale=null;S.err=null}
- catch(e){S.err=null;const raw=ls.get(CACHE_KEY);
+ catch(e){S.err=null;S.errRaw=(e.name||'Error')+': '+(e.message||'');const raw=ls.get(CACHE_KEY);
   if(raw){try{const o=JSON.parse(raw);res=buildItems(o.rows);S.stale=o.ts}catch(_){}}
   if(!res)S.err=e.name==='AbortError'?'La descarga tardó demasiado.':e instanceof TypeError?'El navegador no pudo descargarla (conexión, bloqueador de anuncios, o archivo abierto desde el disco en vez de la web publicada).':e.message||'Error de red.'}
  if(res){S.raw=res.items;S.bad=res.bad}
