@@ -163,8 +163,9 @@ function dlg(html){$('#dlgc').innerHTML=html;$('#dlg').showModal()}
 $('#dlgx').onclick=()=>$('#dlg').close();
 $('#cfgx').onclick=()=>$('#cfg').close();
 $('#cfgdel').onclick=()=>{try{localStorage.removeItem(CONN_KEY);localStorage.removeItem(CACHE_KEY)}catch(e){}$('#cfg').close();S.raw=[];load()};
-$('#cfgok').onclick=()=>{const u=$('#cfgu').value.trim(),k=$('#cfgt').value.trim(),er=$('#cfge');
- if(!/^https:\/\/script\.google\.com\/macros\/s\/[^/]+\/exec$/.test(u)||k.length<16){er.textContent='Revisá la URL (debe terminar en /exec) y pegá el código secreto completo.';er.hidden=false;return}
+$('#cfgok').onclick=()=>{const u=$('#cfgu').value.trim(),m=$('#cfgt').value.match(/[0-9a-f]{64}/i),k=m?m[0]:'',er=$('#cfge');
+ if(!/^https:\/\/script\.google\.com\/macros\/s\/[^/]+\/exec$/.test(u)){er.textContent='La URL debe empezar con https://script.google.com/macros/s/ y terminar en /exec.';er.hidden=false;return}
+ if(!k){er.textContent='No encontré el código: tiene 64 letras y números (0-9 y a-f). Copialo de Propiedades del script > TOKEN.';er.hidden=false;return}
  ls.set(CONN_KEY,JSON.stringify({url:u,token:k}));try{localStorage.removeItem(CACHE_KEY)}catch(e){}$('#cfg').close();S.raw=[];load()};
 
 function recompute(){S.today=todayLocal();S.items=enrich(S.raw||[],S.today);S.occ=expand(S.items,S.today);
